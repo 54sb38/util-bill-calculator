@@ -34,6 +34,54 @@ npm start
 
 The server applies pending migrations on startup. There is no login, so it listens on `127.0.0.1` only. Set `HOST`/`PORT` to change that, and `DB_PATH` to use another database file.
 
+## Running in a container (Apple `container`)
+
+The `Dockerfile` also works with Docker and Podman. Apple's [`container`](https://github.com/apple/container) needs an Apple silicon Mac on macOS 26. Install the signed `.pkg` from its releases page, then:
+
+```bash
+container system start                 # first run asks to install the Linux kernel: say yes
+container build -t bill-calculator .
+container volume create bill-data
+mkdir -p ~/bill-calculator-backups
+container run -d --name bill-calculator \
+  -p 127.0.0.1:3000:3000 \
+  -v bill-data:/data \
+  -v ~/bill-calculator-backups:/backup \
+  bill-calculator
+```
+
+Open http://localhost:3000. The database lives in the `bill-data` volume at `/data/app.db`, so it survives rebuilding and deleting the container. Don't run `container volume prune` while the container is deleted, or the data goes with it.
+
+| Task | Command |
+|---|---|
+| Logs | `container logs -f bill-calculator` |
+| Stop / start | `container stop bill-calculator` / `container start bill-calculator` |
+| Add sample data | `container exec bill-calculator node --import tsx server/src/db/seed.ts` |
+| Back up | `container exec bill-calculator node -e "require('better-sqlite3')('/data/app.db').backup('/backup/app-' + new Date().toISOString().slice(0, 10) + '.db')"` → `~/bill-calculator-backups/` |
+| Update | `git pull && container build -t bill-calculator .`, then `container stop bill-calculator && container rm bill-calculator` and repeat the `container run` above |
+
+Inside the container the server listens on all interfaces (`HOST=0.0.0.0`), but the port is published only on `127.0.0.1`, so the app is reachable only from the Mac itself.
+
+**Start at login.** `container` has no restart policy, so use a launch agent. Save this as `~/Library/LaunchAgents/com.bill-calculator.plist`, then run `launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.bill-calculator.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.bill-calculator</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/sh</string><string>-c</string>
+    <string>/usr/local/bin/container system start &amp;&amp; /usr/local/bin/container start bill-calculator</string>
+  </array>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/tmp/bill-calculator.log</string>
+  <key>StandardErrorPath</key><string>/tmp/bill-calculator.log</string>
+</dict>
+</plist>
+```
+
 ## Scripts
 
 | Script | What it does |

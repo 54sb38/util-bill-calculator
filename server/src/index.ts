@@ -14,6 +14,16 @@ const app = createApp(db, {
   staticDir: isProduction ? path.resolve(import.meta.dirname, '../../web/dist') : undefined,
 });
 
-app.listen(port, host, () => {
+const server = app.listen(port, host, () => {
   console.log(`Bill calculator API on http://${host}:${port} (db: ${DEFAULT_DB_PATH})`);
 });
+
+// Containers stop the app with SIGTERM (and Node as PID 1 ignores it by default). Close the
+// database so the WAL is checkpointed into app.db before exiting.
+for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+  process.once(signal, () => {
+    server.close();
+    db.$client.close();
+    process.exit(0);
+  });
+}
