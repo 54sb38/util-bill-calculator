@@ -42,13 +42,16 @@ export function HomeLayout() {
 
   return (
     <div>
-      <Link to="/" className="text-sm text-slate-500 hover:text-slate-700">
-        ← All homes
-      </Link>
-      <h1 className="mt-1 text-2xl font-semibold text-slate-900">{home.data.name}</h1>
-      {home.data.address && <p className="text-sm text-slate-500">{home.data.address}</p>}
+      {/* Printed pages (statements) carry their own heading, so the home's chrome isn't printed. */}
+      <div className="print:hidden">
+        <Link to="/" className="text-sm text-slate-500 hover:text-slate-700">
+          ← All homes
+        </Link>
+        <h1 className="mt-1 text-2xl font-semibold text-slate-900">{home.data.name}</h1>
+        {home.data.address && <p className="text-sm text-slate-500">{home.data.address}</p>}
+      </div>
 
-      <nav className="mt-4 mb-6 flex gap-1 overflow-x-auto border-b border-slate-200">
+      <nav className="mt-4 mb-6 flex gap-1 overflow-x-auto border-b border-slate-200 print:hidden">
         {tabs.map((t) => (
           <NavLink
             key={t.to}

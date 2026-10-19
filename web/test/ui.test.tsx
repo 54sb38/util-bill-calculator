@@ -224,4 +224,25 @@ describe('UI', () => {
     const aliceRow = (await screen.findByText('Alice', {}, find)).closest('tr')!;
     expect(within(aliceRow).getAllByText('$110.88')).toHaveLength(2);
   });
+
+  it("opens a person's statement from the summary and prints it", async () => {
+    const { homeId, elecId } = await seed();
+    await call('POST', `/homes/${homeId}/bills`, { ...JULY, billTypeId: elecId, amountCents: 186_00 });
+    const print = vi.fn();
+    window.print = print;
+    const user = userEvent.setup();
+    const router = renderApp(`/homes/${homeId}/summary?from=2026-01-01&to=2026-12-31`);
+
+    await user.click(await screen.findByRole('link', { name: 'Bob' }, find));
+    expect(await screen.findByText('Statement for Bob', {}, find)).toBeTruthy();
+    expect(router.state.location.search).toBe('?from=2026-01-01&to=2026-12-31');
+    const row = screen.getByText('Electricity').closest('tr')!;
+    expect(within(row).getByText('21 of 31 days')).toBeTruthy();
+    expect(within(row).getByText('$186.00')).toBeTruthy();
+    expect(screen.getAllByText('$75.12')).toHaveLength(2);
+    expect(document.title).toBe('Statement – Bob – 2026-01-01 to 2026-12-31');
+
+    await user.click(screen.getByRole('button', { name: 'Download PDF' }));
+    expect(print).toHaveBeenCalledOnce();
+  });
 });

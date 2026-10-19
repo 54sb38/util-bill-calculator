@@ -175,7 +175,7 @@ function toShareDtos(shares: CalcShare[], homePeople: HomePerson[]): ShareDto[] 
   }));
 }
 
-function toBillDtos(ex: Executor, homeId: number, rows: { bill: BillRow; billTypeName: string }[]) {
+export function toBillDtos(ex: Executor, homeId: number, rows: { bill: BillRow; billTypeName: string }[]) {
   const ids = rows.map((r) => r.bill.id);
   const homePeople = loadHomePeople(ex, homeId);
   const participants = loadParticipants(ex, ids);
@@ -210,7 +210,7 @@ function toBillDtos(ex: Executor, homeId: number, rows: { bill: BillRow; billTyp
   });
 }
 
-const billWithType = (ex: Executor) =>
+export const billWithType = (ex: Executor) =>
   ex
     .select({ bill: bills, billTypeName: billTypes.name })
     .from(bills)

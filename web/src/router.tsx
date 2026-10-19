@@ -8,6 +8,7 @@ import { HomeLayout } from './pages/HomeLayout';
 import { HomesPage } from './pages/HomesPage';
 import { PeopleTab } from './pages/PeopleTab';
 import { SettingsTab } from './pages/SettingsTab';
+import { StatementPage } from './pages/StatementPage';
 import { SummaryTab } from './pages/SummaryTab';
 import { AppShell } from './components/AppShell';
 
@@ -26,6 +27,7 @@ export const routes: RouteObject[] = [
           { path: 'bills/:billId', element: <BillDetailPage /> },
           { path: 'bills/:billId/edit', element: <BillFormPage /> },
           { path: 'people', element: <PeopleTab /> },
+          { path: 'people/:personId/statement', element: <StatementPage /> },
           { path: 'bill-types', element: <BillTypesTab /> },
           { path: 'summary', element: <SummaryTab /> },
           { path: 'settings', element: <SettingsTab /> },

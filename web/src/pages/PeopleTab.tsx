@@ -12,7 +12,20 @@ import {
   useUpdatePerson,
   useUpdateStay,
 } from '../api/hooks';
-import { Badge, Button, Card, EmptyState, ErrorMessage, Field, Input, Loading, SectionHeader } from '../components/ui';
+import { qs } from '../api/client';
+import { datePresets } from '../components/DateRangeFilter';
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorMessage,
+  Field,
+  Input,
+  LinkButton,
+  Loading,
+  SectionHeader,
+} from '../components/ui';
 import { formatDate, formatRange, todayIso, toDayNumber } from '../lib/dates';
 import { useHomeContext } from './HomeLayout';
 
@@ -94,6 +107,8 @@ function PersonCard({ person, scale }: { person: PersonDto; scale: Scale | null 
   const remove = useDeletePerson();
   const createStay = useCreateStay();
   const archived = person.archivedAt !== null;
+  const { from, to } = datePresets()[0]!;
+  const thisYear = { from, to };
 
   const onDelete = () => {
     if (window.confirm(`Delete ${person.name} and all of their stays?`)) remove.mutate(person.id);
@@ -116,6 +131,14 @@ function PersonCard({ person, scale }: { person: PersonDto; scale: Scale | null 
           )}
           {archived && <Badge>archived</Badge>}
           <div className="ml-auto flex flex-wrap gap-1">
+            <LinkButton
+              size="sm"
+              variant="ghost"
+              aria-label={`Statement for ${person.name}`}
+              to={`/homes/${person.homeId}/people/${person.id}/statement${qs(thisYear)}`}
+            >
+              Statement
+            </LinkButton>
             <Button size="sm" variant="ghost" aria-label={`Edit ${person.name}`} onClick={() => setEditing(true)}>
               Edit
             </Button>

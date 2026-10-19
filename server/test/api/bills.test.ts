@@ -457,3 +457,84 @@ describe('summary', () => {
     expect(all).toMatchObject({ billCount: 3, totalCents: 172_00, from: null, to: null });
   });
 });
+
+describe('statement', () => {
+  it("lists one person's shares for bills starting in the range, matching the summary", async () => {
+    const { api, homeId, people, types } = await household();
+    const post = (body: object) => api.post(`/homes/${homeId}/bills`, body).expect(201);
+    await post({ ...JAN, billTypeId: types.Electricity, amountCents: 52_00 });
+    await post({ ...JAN, billTypeId: types.Internet, amountCents: 60_00 });
+    await post({ startDate: '2025-02-01', endDate: '2025-02-28', billTypeId: types.Internet, amountCents: 60_00 });
+    // Bob is excluded from March, and pays a quarter of April by weights.
+    await post({
+      startDate: '2025-03-01',
+      endDate: '2025-03-31',
+      billTypeId: types.Internet,
+      amountCents: 60_00,
+      participants: [{ personId: people.Bob, included: false }],
+    });
+    await post({
+      startDate: '2025-04-01',
+      endDate: '2025-04-30',
+      billTypeId: types.Internet,
+      amountCents: 40_00,
+      splitMethod: 'weights',
+      participants: [{ personId: people.Alice, weight: 3 }],
+    });
+
+    const range = '?from=2025-01-01&to=2025-02-28';
+    const alice = (await api.get(`/people/${people.Alice}/statement${range}`).expect(200)).body;
+    expect(alice).toMatchObject({
+      home: { id: homeId, name: 'Test home' },
+      person: { id: people.Alice, name: 'Alice', archived: false },
+      from: '2025-01-01',
+      to: '2025-02-28',
+      totalCents: 91_00,
+      staleCount: 0,
+    });
+    expect(alice.lines).toEqual([
+      expect.objectContaining({
+        billTypeName: 'Electricity',
+        splitMethod: 'by_days',
+        days: 31,
+        daysCounted: 31,
+        billAmountCents: 52_00,
+        participantCount: 2,
+        shareCents: 31_00,
+        totalWeight: null,
+        isStale: false,
+      }),
+      expect.objectContaining({ billTypeName: 'Internet', startDate: '2025-01-01', shareCents: 30_00 }),
+      expect.objectContaining({ billTypeName: 'Internet', startDate: '2025-02-01', shareCents: 30_00 }),
+    ]);
+    const summary = (await api.get(`/homes/${homeId}/summary${range}`)).body;
+    expect(summary.people.find((p: { name: string }) => p.name === 'Alice').totalCents).toBe(alice.totalCents);
+
+    const bob = (await api.get(`/people/${people.Bob}/statement`).expect(200)).body;
+    expect(bob).toMatchObject({ from: null, to: null, totalCents: 21_00 + 30_00 + 30_00 + 10_00 });
+    expect(bob.lines.map((l: { startDate: string }) => l.startDate)).toEqual([
+      '2025-01-01',
+      '2025-01-01',
+      '2025-02-01',
+      '2025-04-01',
+    ]);
+    expect(bob.lines[3]).toMatchObject({ splitMethod: 'weights', weightUsed: 1, totalWeight: 4, shareCents: 10_00 });
+  });
+
+  it('flags stale bills but keeps the stored amounts', async () => {
+    const { api, homeId, people, types } = await household();
+    await api.post(`/homes/${homeId}/bills`, { ...JAN, billTypeId: types.Electricity, amountCents: 52_00 }).expect(201);
+    const bobStays = (await api.get(`/people/${people.Bob}`)).body.stays;
+    await api.patch(`/stays/${bobStays[1].id}`, { startDate: '2025-01-25' }).expect(200);
+
+    const bob = (await api.get(`/people/${people.Bob}/statement`).expect(200)).body;
+    expect(bob).toMatchObject({ staleCount: 1, totalCents: 21_00 });
+    expect(bob.lines[0]).toMatchObject({ isStale: true, shareCents: 21_00 });
+  });
+
+  it('rejects unknown people and bad dates', async () => {
+    const { api, people } = await household();
+    await api.get('/people/999/statement').expect(404);
+    await api.get(`/people/${people.Alice}/statement?from=2025-13-01`).expect(400);
+  });
+});

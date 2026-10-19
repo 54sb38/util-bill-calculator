@@ -17,6 +17,7 @@ import type {
   PreviewDto,
   StayCreate,
   StayDto,
+  StatementDto,
   StayUpdate,
   SummaryDto,
 } from '@bill/shared';
@@ -157,5 +158,12 @@ export const useSummary = (homeId: number, range: { from?: string; to?: string }
   useQuery({
     queryKey: ['homes', homeId, 'summary', range],
     queryFn: () => api.get<SummaryDto>(`/homes/${homeId}/summary${qs(range)}`),
+    placeholderData: keepPreviousData,
+  });
+
+export const useStatement = (personId: number, range: { from?: string; to?: string }) =>
+  useQuery({
+    queryKey: ['people', personId, 'statement', range],
+    queryFn: () => api.get<StatementDto>(`/people/${personId}/statement${qs(range)}`),
     placeholderData: keepPreviousData,
   });

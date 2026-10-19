@@ -12,6 +12,7 @@ A small single-user web app for working out how much of each utility bill every 
   | **By weights** | Proportional to each person's weight (a default per person, overridable per bill) |
   | **Custom amounts** | You enter each share; the shares must add up to the bill |
 - Participants are worked out automatically from stays, and you can exclude or add people on a single bill.
+- Each person has a printable **statement**: their share of every bill in a date range, plus the total. **Download PDF** opens the browser's print dialog, where you choose *Save as PDF*. Statements use the same rule as the Summary tab (bills that *start* in the range), so the totals always match.
 - Calculated shares are **saved as a snapshot**. Editing stays or weights later does not silently change old bills. Instead, affected bills are flagged *"needs recalculation"*, and you choose whether to recalculate.
 
 ## Getting started

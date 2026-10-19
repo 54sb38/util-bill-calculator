@@ -1,8 +1,9 @@
 import { Router } from 'express';
-import { peopleQuery, personCreate, personUpdate, stayCreate, stayUpdate } from '@bill/shared';
+import { peopleQuery, personCreate, personUpdate, stayCreate, stayUpdate, summaryQuery } from '@bill/shared';
 import type { Db } from '../db/client';
 import { idParam } from '../http/params';
 import { createPerson, deletePerson, getPerson, listPeople, updatePerson } from '../services/people';
+import { getStatement } from '../services/statement';
 import { createStay, deleteStay, updateStay } from '../services/stays';
 
 export function peopleRouter(db: Db) {
@@ -24,6 +25,9 @@ export function peopleRouter(db: Db) {
   r.delete('/people/:personId', (req, res) => {
     deletePerson(db, idParam(req, 'personId'));
     res.status(204).end();
+  });
+  r.get('/people/:personId/statement', (req, res) => {
+    res.json(getStatement(db, idParam(req, 'personId'), summaryQuery.parse(req.query)));
   });
 
   r.post('/people/:personId/stays', (req, res) => {

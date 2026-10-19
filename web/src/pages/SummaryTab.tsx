@@ -1,61 +1,25 @@
-import { useSearchParams } from 'react-router';
+import { Link } from 'react-router';
+import { qs } from '../api/client';
 import { useSummary } from '../api/hooks';
-import { Badge, Button, Card, EmptyState, ErrorMessage, Field, Input, Loading, SectionHeader } from '../components/ui';
-import { addDays, todayIso } from '../lib/dates';
+import { DateRangeFilter, useDateRangeParams } from '../components/DateRangeFilter';
+import { Badge, Card, EmptyState, ErrorMessage, Loading, SectionHeader } from '../components/ui';
 import { formatMoney } from '../lib/money';
 import { useHomeContext } from './HomeLayout';
 
-function presets() {
-  const today = todayIso();
-  const year = Number(today.slice(0, 4));
-  return [
-    { label: 'This year', from: `${year}-01-01`, to: `${year}-12-31` },
-    { label: 'Last year', from: `${year - 1}-01-01`, to: `${year - 1}-12-31` },
-    { label: 'Last 12 months', from: addDays(today, -364), to: today },
-    { label: 'All time', from: '', to: '' },
-  ];
-}
-
 export function SummaryTab() {
   const { home } = useHomeContext();
-  const [params, setParams] = useSearchParams();
-  const range = { from: params.get('from') || undefined, to: params.get('to') || undefined };
+  const [range] = useDateRangeParams();
   const summary = useSummary(home.id, range);
-
-  const setRange = (from: string, to: string) => {
-    const next = new URLSearchParams();
-    if (from) next.set('from', from);
-    if (to) next.set('to', to);
-    setParams(next, { replace: true });
-  };
 
   return (
     <div className="space-y-4">
       <SectionHeader title="Summary" />
       <p className="-mt-2 text-sm text-slate-500">
-        Totals of the saved shares for bills that <em>start</em> in the selected period.
+        Totals of the saved shares for bills that <em>start</em> in the selected period. Click a name for a
+        printable statement.
       </p>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <Field label="From">
-          <Input type="date" value={range.from ?? ''} onChange={(e) => setRange(e.target.value, range.to ?? '')} />
-        </Field>
-        <Field label="To">
-          <Input type="date" value={range.to ?? ''} onChange={(e) => setRange(range.from ?? '', e.target.value)} />
-        </Field>
-        <div className="flex flex-wrap gap-1">
-          {presets().map((p) => (
-            <Button
-              key={p.label}
-              size="sm"
-              variant={(range.from ?? '') === p.from && (range.to ?? '') === p.to ? 'primary' : 'ghost'}
-              onClick={() => setRange(p.from, p.to)}
-            >
-              {p.label}
-            </Button>
-          ))}
-        </div>
-      </div>
+      <DateRangeFilter />
 
       {summary.isPending ? (
         <Loading />
@@ -81,7 +45,13 @@ export function SummaryTab() {
               {summary.data.people.map((p) => (
                 <tr key={p.personId}>
                   <td className="px-4 py-2 font-medium text-slate-800">
-                    {p.name} {p.archived && <Badge>archived</Badge>}
+                    <Link
+                      to={`/homes/${home.id}/people/${p.personId}/statement${qs(range)}`}
+                      className="text-emerald-700 hover:underline"
+                    >
+                      {p.name}
+                    </Link>{' '}
+                    {p.archived && <Badge>archived</Badge>}
                   </td>
                   {summary.data.types.map((t) => (
                     <td key={t.billTypeId} className="px-4 py-2 text-right text-slate-600 tabular-nums">

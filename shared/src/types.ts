@@ -129,6 +129,34 @@ export interface SummaryDto {
   people: SummaryPersonDto[];
 }
 
+/** One bill on a person's statement, with that person's share of it. */
+export interface StatementLineDto {
+  billId: number;
+  billTypeName: string;
+  startDate: string;
+  endDate: string;
+  days: number;
+  splitMethod: SplitMethod;
+  billAmountCents: number;
+  participantCount: number;
+  shareCents: number;
+  daysCounted: number | null;
+  weightUsed: number | null;
+  /** Sum of the weights of everyone on the bill (weights bills only). */
+  totalWeight: number | null;
+  isStale: boolean;
+}
+
+export interface StatementDto {
+  home: { id: number; name: string; address: string | null };
+  person: { id: number; name: string; archived: boolean };
+  from: string | null;
+  to: string | null;
+  lines: StatementLineDto[];
+  totalCents: number;
+  staleCount: number;
+}
+
 export interface ApiErrorBody {
   error: {
     code: string;
